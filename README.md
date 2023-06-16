@@ -6,5 +6,5 @@
 This packages forked from [https://github.com/Xeoncross/go-aesctr-with-hmac](https://github.com/Xeoncross/go-aesctr-with-hmac). WASM has been optimized for runtime.
 
 ```shell
-go get github.com/akdilsiz/go-aesctr-with-hmac-wasm
+go get github.com/akdilsiz/go-wasm-aesctr-with-hmac
 ```
