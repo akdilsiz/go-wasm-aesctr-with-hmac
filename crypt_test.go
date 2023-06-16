@@ -100,7 +100,7 @@ func TestDecrypt(t *testing.T) {
 		return js.Undefined()
 	})
 
-	err = Decrypt(coming.Get("buffer"), comingOutFun.Value, keyAES, keyHMAC)
+	err = Decrypt(coming.Get("buffer"), comingOutFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 
 	decoder := global.Get("TextDecoder").New()
@@ -157,7 +157,7 @@ func TestDecrypt2(t *testing.T) {
 		return js.Undefined()
 	})
 
-	err = Decrypt(coming.Get("buffer"), comingOutFun.Value, keyAES, keyHMAC)
+	err = Decrypt(coming.Get("buffer"), comingOutFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 
 	goBytes := make([]byte, len(bytes))
