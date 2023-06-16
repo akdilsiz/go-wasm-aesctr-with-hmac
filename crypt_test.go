@@ -38,11 +38,20 @@ func TestEncrypt(t *testing.T) {
 	arrValues.SetIndex(4, inFileGOBytes[4])
 
 	assert.Equal(t, 5, arrBuff.Get("byteLength").Int())
+
 	keyAES, err := GenerateKey(32)
 	assert.Nil(t, err)
-	keyHMAC, err := GenerateKey(32)
+	keyAESJSBytes := uint8Array.New(32)
+	ii := js.CopyBytesToJS(keyAESJSBytes, keyAES)
+	assert.Equal(t, 32, ii)
 
-	err = Encrypt(arrBuff, comingFun.Value, keyAES, keyHMAC)
+	keyHMAC, err := GenerateKey(32)
+	assert.Nil(t, err)
+	keyHMACJSBytes := uint8Array.New(32)
+	ii = js.CopyBytesToJS(keyHMACJSBytes, keyHMAC)
+	assert.Equal(t, 32, ii)
+
+	err = Encrypt(arrBuff, comingFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, coming[0].Get("byteLength").Int())
 	assert.Equal(t, 16, coming[1].Get("byteLength").Int())
@@ -64,11 +73,20 @@ func TestDecrypt(t *testing.T) {
 	encoded := encoder.Call("encode", "selam")
 
 	assert.Equal(t, 5, encoded.Get("byteLength").Int())
+
 	keyAES, err := GenerateKey(32)
 	assert.Nil(t, err)
-	keyHMAC, err := GenerateKey(32)
+	keyAESJSBytes := uint8Array.New(32)
+	ii := js.CopyBytesToJS(keyAESJSBytes, keyAES)
+	assert.Equal(t, 32, ii)
 
-	err = Encrypt(encoded.Get("buffer"), comingFun.Value, keyAES, keyHMAC)
+	keyHMAC, err := GenerateKey(32)
+	assert.Nil(t, err)
+	keyHMACJSBytes := uint8Array.New(32)
+	ii = js.CopyBytesToJS(keyHMACJSBytes, keyHMAC)
+	assert.Equal(t, 32, ii)
+
+	err = Encrypt(encoded.Get("buffer"), comingFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 5+1+16+64, coming.Get("byteLength").Int())
@@ -112,11 +130,20 @@ func TestDecrypt2(t *testing.T) {
 	assert.Equal(t, len(bytes), ii)
 
 	assert.Equal(t, ii, jsBytes.Get("byteLength").Int())
+
 	keyAES, err := GenerateKey(32)
 	assert.Nil(t, err)
-	keyHMAC, err := GenerateKey(32)
+	keyAESJSBytes := uint8Array.New(32)
+	ii2 := js.CopyBytesToJS(keyAESJSBytes, keyAES)
+	assert.Equal(t, 32, ii2)
 
-	err = Encrypt(jsBytes.Get("buffer"), comingFun.Value, keyAES, keyHMAC)
+	keyHMAC, err := GenerateKey(32)
+	assert.Nil(t, err)
+	keyHMACJSBytes := uint8Array.New(32)
+	ii2 = js.CopyBytesToJS(keyHMACJSBytes, keyHMAC)
+	assert.Equal(t, 32, ii2)
+
+	err = Encrypt(jsBytes.Get("buffer"), comingFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 
 	assert.Equal(t, ii+1+16+64, coming.Get("byteLength").Int())

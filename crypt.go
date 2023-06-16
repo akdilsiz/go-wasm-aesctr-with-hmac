@@ -32,7 +32,7 @@ var (
 // Encrypt the stream using the given AES-CTR and SHA512-HMAC key
 // @param in ArrayBuffer
 // @param outFun function(chunk)
-func Encrypt(in js.Value, outFun js.Value, keyAes, keyHmac []byte) (err error) {
+func Encrypt(in js.Value, outFun js.Value, keyAES, keyHMAC js.Value) (err error) {
 	if in.Get("byteLength").Int() == 0 {
 		return ErrInvalidParameters
 	}
@@ -42,13 +42,24 @@ func Encrypt(in js.Value, outFun js.Value, keyAes, keyHmac []byte) (err error) {
 		return err
 	}
 
-	AES, err := aes.NewCipher(keyAes)
+	keyAESBytes := make([]byte, keyAES.Get("byteLength").Int())
+	ii := js.CopyBytesToGo(keyAESBytes, keyAES)
+	if ii == 0 {
+		return ErrInvalidParameters
+	}
+	keyHMACBytes := make([]byte, keyHMAC.Get("byteLength").Int())
+	ii = js.CopyBytesToGo(keyHMACBytes, keyHMAC)
+	if ii == 0 {
+		return ErrInvalidParameters
+	}
+
+	AES, err := aes.NewCipher(keyAESBytes)
 	if err != nil {
 		return err
 	}
 
 	ctr := cipher.NewCTR(AES, iv)
-	HMAC := hmac.New(sha512.New, keyHmac)
+	HMAC := hmac.New(sha512.New, keyHMACBytes)
 
 	ch1 := uint8Array.New(1)
 	js.CopyBytesToJS(ch1, []byte{V1})
@@ -105,7 +116,7 @@ func Encrypt(in js.Value, outFun js.Value, keyAes, keyHmac []byte) (err error) {
 // of validating the ending HMAC hash.
 // @param in ArrayBuffer
 // @param outFun function(chunk)
-func Decrypt(in js.Value, outFun js.Value, keyAes, keyHmac []byte) (err error) {
+func Decrypt(in js.Value, outFun js.Value, keyAES, keyHMAC []byte) (err error) {
 	offset := 0
 	// Read version (up to 0-255)
 	var version int8
@@ -130,13 +141,13 @@ func Decrypt(in js.Value, outFun js.Value, keyAes, keyHmac []byte) (err error) {
 	}
 	offset += IvSize
 
-	AES, err := aes.NewCipher(keyAes)
+	AES, err := aes.NewCipher(keyAES)
 	if err != nil {
 		return
 	}
 
 	ctr := cipher.NewCTR(AES, iv)
-	h := hmac.New(sha512.New, keyHmac)
+	h := hmac.New(sha512.New, keyHMAC)
 	h.Write(iv)
 	mac := make([]byte, hmacSize)
 
