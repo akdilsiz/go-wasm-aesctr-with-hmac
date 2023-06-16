@@ -8,3 +8,8 @@ This packages forked from [https://github.com/Xeoncross/go-aesctr-with-hmac](htt
 ```shell
 go get github.com/akdilsiz/go-wasm-aesctr-with-hmac
 ```
+
+## Tests
+```shell
+GOOS=js GOARCH=wasm go test -v .
+```

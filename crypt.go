@@ -116,7 +116,18 @@ func Encrypt(in js.Value, outFun js.Value, keyAES, keyHMAC js.Value) (err error)
 // of validating the ending HMAC hash.
 // @param in ArrayBuffer
 // @param outFun function(chunk)
-func Decrypt(in js.Value, outFun js.Value, keyAES, keyHMAC []byte) (err error) {
+func Decrypt(in js.Value, outFun js.Value, keyAES, keyHMAC js.Value) (err error) {
+	keyAESBytes := make([]byte, keyAES.Get("byteLength").Int())
+	ii := js.CopyBytesToGo(keyAESBytes, keyAES)
+	if ii == 0 {
+		return ErrInvalidParameters
+	}
+	keyHMACBytes := make([]byte, keyHMAC.Get("byteLength").Int())
+	ii = js.CopyBytesToGo(keyHMACBytes, keyHMAC)
+	if ii == 0 {
+		return ErrInvalidParameters
+	}
+
 	offset := 0
 	// Read version (up to 0-255)
 	var version int8
@@ -141,13 +152,13 @@ func Decrypt(in js.Value, outFun js.Value, keyAES, keyHMAC []byte) (err error) {
 	}
 	offset += IvSize
 
-	AES, err := aes.NewCipher(keyAES)
+	AES, err := aes.NewCipher(keyAESBytes)
 	if err != nil {
 		return
 	}
 
 	ctr := cipher.NewCTR(AES, iv)
-	h := hmac.New(sha512.New, keyHMAC)
+	h := hmac.New(sha512.New, keyHMACBytes)
 	h.Write(iv)
 	mac := make([]byte, hmacSize)
 
