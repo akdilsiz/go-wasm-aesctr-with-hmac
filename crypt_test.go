@@ -4,14 +4,12 @@ package aesctr
 
 import (
 	"github.com/stretchr/testify/assert"
-	"io"
 	"os"
 	"path/filepath"
 	"syscall/js"
 	"testing"
 )
 
-var global = js.Global()
 var console = global.Get("console")
 var consoleLog = func(val js.Value) {
 	console.Call("log", val)
@@ -109,27 +107,18 @@ func TestDecrypt(t *testing.T) {
 }
 
 func TestDecrypt2(t *testing.T) {
-	coming := uint8Array.New(0)
+	encryptedFilename := filepath.Join(wd(), "test", "file.encrypted")
+	decryptedFilename := filepath.Join(wd(), "test", "file.decrypted")
+	global.Get("fs").Call("truncateSync", encryptedFilename)
+	global.Get("fs").Call("truncateSync", decryptedFilename)
+
 	comingFun := js.FuncOf(func(this js.Value, args []js.Value) any {
-		arr := global.Get("Uint8Array").New(coming.Get("byteLength").Int() + args[0].Get("byteLength").Int())
-		arr.Call("set", coming, 0)
-		arr.Call("set", args[0], coming.Get("byteLength").Int())
-		coming = uint8Array.New(arr)
+		global.Get("fs").Call("appendFileSync",
+			encryptedFilename,
+			args[0])
+
 		return js.Undefined()
 	})
-
-	f, err := os.Open(filepath.Join(wd(), "test", "efetherock.jpg"))
-	assert.Nil(t, err)
-	bytes, err := io.ReadAll(f)
-	assert.Nil(t, err)
-	err = f.Close()
-	assert.Nil(t, err)
-
-	jsBytes := uint8Array.New(len(bytes))
-	ii := js.CopyBytesToJS(jsBytes, bytes)
-	assert.Equal(t, len(bytes), ii)
-
-	assert.Equal(t, ii, jsBytes.Get("byteLength").Int())
 
 	keyAES, err := GenerateKey(32)
 	assert.Nil(t, err)
@@ -143,25 +132,41 @@ func TestDecrypt2(t *testing.T) {
 	ii2 = js.CopyBytesToJS(keyHMACJSBytes, keyHMAC)
 	assert.Equal(t, 32, ii2)
 
-	err = Encrypt(jsBytes.Get("buffer"), comingFun.Value, keyAESJSBytes, keyHMACJSBytes)
+	saltFile := global.Get("fs").Call("readFileSync", filepath.Join(wd(), "test", "efetherock.jpg"))
+
+	err = Encrypt(saltFile.Get("buffer"), comingFun.Value, keyAESJSBytes, keyHMACJSBytes)
 	assert.Nil(t, err)
 
-	assert.Equal(t, ii+1+16+64, coming.Get("byteLength").Int())
+	// sync file
+	_, _ = os.Stat(encryptedFilename)
 
-	comingOut := uint8Array.New(0)
+	encryptedFileBuffer := global.Get("fs").Call("readFileSync", encryptedFilename)
+
+	assert.Equal(t,
+		saltFile.Get("byteLength").Int()+1+16+64,
+		encryptedFileBuffer.Get("byteLength").Int())
+
 	comingOutFun := js.FuncOf(func(this js.Value, args []js.Value) any {
-		arr := global.Get("Uint8Array").New(comingOut.Get("byteLength").Int() + args[0].Get("byteLength").Int())
-		arr.Call("set", comingOut, 0)
-		arr.Call("set", args[0], comingOut.Get("byteLength").Int())
-		comingOut = uint8Array.New(arr)
+		global.Get("fs").Call("appendFileSync",
+			decryptedFilename,
+			args[0],
+			js.FuncOf(func(this js.Value, args2 []js.Value) any {
+				return js.Undefined()
+			}))
 		return js.Undefined()
 	})
 
-	err = Decrypt(coming.Get("buffer"), comingOutFun.Value, keyAESJSBytes, keyHMACJSBytes)
+	err = Decrypt(encryptedFileBuffer.Get("buffer"),
+		comingOutFun.Value,
+		keyAESJSBytes,
+		keyHMACJSBytes)
 	assert.Nil(t, err)
 
-	goBytes := make([]byte, len(bytes))
-	iii := js.CopyBytesToGo(goBytes, comingOut)
-	assert.Equal(t, iii, ii)
-	assert.Equal(t, bytes, goBytes)
+	_, _ = os.Stat(decryptedFilename)
+	decryptedFileBuffer := global.Get("fs").Call("readFileSync", decryptedFilename)
+
+	assert.Equal(t, saltFile.Get("byteLength"), decryptedFileBuffer.Get("byteLength"))
+
+	global.Get("fs").Call("truncateSync", encryptedFilename)
+	global.Get("fs").Call("truncateSync", decryptedFilename)
 }
